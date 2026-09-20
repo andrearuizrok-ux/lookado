@@ -3,7 +3,8 @@ name: Build LOOKADO Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
       - 'lookado_rebuild/**'
       - '.github/workflows/build-apk.yml'
@@ -14,7 +15,7 @@ permissions:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     defaults:
       run:
@@ -42,31 +43,68 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
-          npm install --save-dev typescript
+          npm install --no-audit --no-fund
+          npm install --no-save \
+            @capacitor/core@7.4.3 \
+            @capacitor/android@7.4.3 \
+            @capacitor/cli@7.4.3
 
-      - name: Build web app
+      - name: Build LOOKADO web app
         run: npm run build
 
-      - name: Prepare Android project
+      - name: Create stable Capacitor config
         run: |
-          if [ ! -d android ]; then
-            npx cap add android
-          fi
+          rm -f capacitor.config.ts
+          rm -f capacitor.config.js
+
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.lookado.app",
+            "appName": "LOOKADO",
+            "webDir": "dist",
+            "server": {
+              "androidScheme": "https"
+            }
+          }
+          EOF
+
+          cat capacitor.config.json
+
+      - name: Create Android project
+        run: |
+          rm -rf android
+          npx cap add android
           npx cap sync android
+          npx cap doctor || true
+
+      - name: Show Android configuration
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          java -version
+          node --version
+          npm --version
+          npx cap --version
+          ls -la android
+          ls -la android/app
 
       - name: Build debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew clean assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK
+        run: |
+          test -f android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Rename APK
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk \
-             android/app/build/outputs/apk/debug/LOOKADO-v18.1-debug.apk
+          cp \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            android/app/build/outputs/apk/debug/LOOKADO-v18.1-debug.apk
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: LOOKADO-v18.1-APK
