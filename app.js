@@ -1,12 +1,71 @@
 
 const KEY="lookado_app_v1";
 
+/* LOOKADO v19 · International location + locale layer */
+const LOOKADO_I18N_KEY="lookado_i18n_v1";
+const LOOKADO_LOCATION_KEY="lookado_location_v1";
+const SUPPORTED_LOCALES=["it","en","es","fr","de","pt"];
+const LOCALE_META={
+  it:{label:"Italiano",locale:"it-IT",currency:"EUR"},
+  en:{label:"English",locale:"en-GB",currency:"EUR"},
+  es:{label:"Español",locale:"es-ES",currency:"EUR"},
+  fr:{label:"Français",locale:"fr-FR",currency:"EUR"},
+  de:{label:"Deutsch",locale:"de-DE",currency:"EUR"},
+  pt:{label:"Português",locale:"pt-PT",currency:"EUR"}
+};
+const I18N={
+ it:{discover:"Scopri",appointments:"Appuntamenti",favorites:"Preferiti",pro:"LOOKADO Pro",hero:"Trova professionisti, confronta servizi e disponibilità, prenota in pochi secondi.",search:"Cerca",near:"Vicino a me",where:"Città, quartiere o indirizzo",what:"Hair, barber, nails, beauty...",explore:"Esplora",looking:"Cosa cerchi?",nearTitle:"Attività vicino a te",locationDenied:"Posizione non disponibile. Puoi cercare qualsiasi città manualmente.",locationFound:"Posizione rilevata",allLocations:"Tutto il mondo"},
+ en:{discover:"Discover",appointments:"Appointments",favorites:"Favorites",pro:"LOOKADO Pro",hero:"Find professionals, compare services and availability, and book in seconds.",search:"Search",near:"Near me",where:"City, neighbourhood or address",what:"Hair, barber, nails, beauty...",explore:"Explore",looking:"What are you looking for?",nearTitle:"Businesses near you",locationDenied:"Location unavailable. You can search any city manually.",locationFound:"Location detected",allLocations:"Worldwide"},
+ es:{discover:"Descubrir",appointments:"Citas",favorites:"Favoritos",pro:"LOOKADO Pro",hero:"Encuentra profesionales, compara servicios y disponibilidad y reserva en segundos.",search:"Buscar",near:"Cerca de mí",where:"Ciudad, barrio o dirección",what:"Peluquería, barbería, uñas, belleza...",explore:"Explorar",looking:"¿Qué buscas?",nearTitle:"Negocios cerca de ti",locationDenied:"Ubicación no disponible. Puedes buscar cualquier ciudad manualmente.",locationFound:"Ubicación detectada",allLocations:"Todo el mundo"},
+ fr:{discover:"Découvrir",appointments:"Rendez-vous",favorites:"Favoris",pro:"LOOKADO Pro",hero:"Trouvez des professionnels, comparez les services et les disponibilités, puis réservez en quelques secondes.",search:"Rechercher",near:"Autour de moi",where:"Ville, quartier ou adresse",what:"Coiffure, barbier, ongles, beauté...",explore:"Explorer",looking:"Que recherchez-vous ?",nearTitle:"Établissements près de vous",locationDenied:"Localisation indisponible. Vous pouvez rechercher n'importe quelle ville.",locationFound:"Position détectée",allLocations:"Monde entier"},
+ de:{discover:"Entdecken",appointments:"Termine",favorites:"Favoriten",pro:"LOOKADO Pro",hero:"Profis finden, Leistungen und Verfügbarkeit vergleichen und in Sekunden buchen.",search:"Suchen",near:"In meiner Nähe",where:"Stadt, Viertel oder Adresse",what:"Haare, Barber, Nägel, Beauty...",explore:"Entdecken",looking:"Was suchst du?",nearTitle:"Anbieter in deiner Nähe",locationDenied:"Standort nicht verfügbar. Du kannst jede Stadt manuell suchen.",locationFound:"Standort erkannt",allLocations:"Weltweit"},
+ pt:{discover:"Descobrir",appointments:"Marcações",favorites:"Favoritos",pro:"LOOKADO Pro",hero:"Encontre profissionais, compare serviços e disponibilidade e marque em segundos.",search:"Pesquisar",near:"Perto de mim",where:"Cidade, bairro ou morada",what:"Cabelo, barbeiro, unhas, beleza...",explore:"Explorar",looking:"O que procura?",nearTitle:"Negócios perto de si",locationDenied:"Localização indisponível. Pode pesquisar qualquer cidade manualmente.",locationFound:"Localização detetada",allLocations:"Todo o mundo"}
+};
+let lookadoLocale=localStorage.getItem(LOOKADO_I18N_KEY)||((navigator.language||"en").split("-")[0]);
+if(!SUPPORTED_LOCALES.includes(lookadoLocale)) lookadoLocale="en";
+let userGeo=JSON.parse(localStorage.getItem(LOOKADO_LOCATION_KEY)||"null");
+function tr(k){return I18N[lookadoLocale]?.[k]||I18N.en[k]||k}
+function localeCode(){return LOCALE_META[lookadoLocale]?.locale||navigator.language||"en-GB"}
+function setLookadoLanguage(lang){
+ if(!SUPPORTED_LOCALES.includes(lang))return;
+ lookadoLocale=lang; localStorage.setItem(LOOKADO_I18N_KEY,lang);
+ document.documentElement.lang=lang; applyGlobalTranslations(); render();
+}
+function applyGlobalTranslations(){
+ document.documentElement.lang=lookadoLocale;
+ const nav=document.querySelector(".desktop-nav");
+ if(nav){const a=nav.querySelectorAll("a"); if(a[0])a[0].textContent=tr("discover");if(a[1])a[1].textContent=tr("appointments");if(a[2])a[2].textContent=tr("favorites")}
+ const mb=document.querySelectorAll(".mobile-nav small");if(mb[0])mb[0].textContent="Home";if(mb[1])mb[1].textContent=tr("appointments");if(mb[2])mb[2].textContent=tr("favorites");
+ if(modeBtn && !location.hash.startsWith("#/pro")) modeBtn.textContent=tr("pro");
+}
+function haversineKm(a,b){
+ const R=6371,rad=x=>x*Math.PI/180,dLat=rad(b.lat-a.lat),dLon=rad(b.lng-a.lng);
+ const x=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+ return 2*R*Math.asin(Math.sqrt(x));
+}
+function useMyLocation(){
+ if(!navigator.geolocation){toast(tr("locationDenied"));return}
+ const btn=document.getElementById("nearMeBtn"); if(btn){btn.disabled=true;btn.textContent="…"}
+ navigator.geolocation.getCurrentPosition(pos=>{
+   userGeo={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy,updatedAt:Date.now()};
+   localStorage.setItem(LOOKADO_LOCATION_KEY,JSON.stringify(userGeo));
+   filters.locationQuery=""; filters.nearMe=true;
+   state.businesses.forEach(b=>{if(Number.isFinite(b.lat)&&Number.isFinite(b.lng))b.distance=Number(haversineKm(userGeo,b).toFixed(1))});
+   toast(tr("locationFound"));refreshHome();
+ },()=>{toast(tr("locationDenied"));if(btn){btn.disabled=false;btn.textContent="⌖ "+tr("near")}},
+ {enableHighAccuracy:false,timeout:8000,maximumAge:300000});
+}
+function localeSelector(){
+ return `<select class="locale-select" aria-label="Language" onchange="setLookadoLanguage(this.value)">${SUPPORTED_LOCALES.map(x=>`<option value="${x}" ${x===lookadoLocale?"selected":""}>${LOCALE_META[x].label}</option>`).join("")}</select>`;
+}
+
+
 function addDays(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d}
 function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
-function money(v){return new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(v)}
+function money(v,currency="EUR"){return new Intl.NumberFormat(localeCode(),{style:"currency",currency}).format(v)}
 function fmtDate(s,short=false){
   const d=new Date(s+"T12:00:00");
-  return new Intl.DateTimeFormat("it-IT",short?{weekday:"short",day:"2-digit",month:"short"}:{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(d)
+  return new Intl.DateTimeFormat(localeCode(),short?{weekday:"short",day:"2-digit",month:"short"}:{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(d)
 }
 const TODAY=()=>isoDate(new Date());
 
@@ -14,12 +73,12 @@ const seed={
   user:{name:"Ospite",email:"",phone:""},
   favorites:[],
   businesses:[
-    {id:"b1",name:"The Good Cut",category:["Hair","Barber"],rating:4.9,reviews:320,distance:0.8,city:"Milano",address:"Via Brera 18",priceFrom:20,description:"Hair & barber studio contemporaneo con servizi uomo e donna.",membership:"pro"},
-    {id:"b2",name:"Luna Nails",category:["Nails","Beauty"],rating:4.8,reviews:118,distance:1.6,city:"Milano",address:"Corso Garibaldi 42",priceFrom:25,description:"Nail studio specializzato in manicure, semipermanente e nail art.",membership:"start"},
-    {id:"b3",name:"Kai Wellness",category:["Wellness","Beauty"],rating:4.9,reviews:210,distance:2.4,city:"Milano",address:"Via Solferino 8",priceFrom:40,description:"Wellness studio con trattamenti viso, massaggi e rituali di cura.",membership:"business"},
-    {id:"b4",name:"Forma Studio",category:["Hair","Beauty"],rating:4.7,reviews:92,distance:3.1,city:"Milano",address:"Viale Monza 54",priceFrom:22,description:"Hair & beauty studio inclusivo, moderno e orientato alla consulenza.",membership:"pro"},
-    {id:"b5",name:"North Barber",category:["Barber"],rating:4.8,reviews:176,distance:1.2,city:"Milano",address:"Via Torino 19",priceFrom:18,description:"Barber shop contemporaneo, tagli classici e moderni.",membership:"start"},
-    {id:"b6",name:"Aura Lab",category:["Beauty","Nails"],rating:4.9,reviews:145,distance:2.0,city:"Milano",address:"Via Moscova 11",priceFrom:28,description:"Beauty lab per viso, mani e trattamenti personalizzati.",membership:"pro"}
+    {id:"b1",name:"The Good Cut",category:["Hair","Barber"],rating:4.9,reviews:320,distance:0.8,city:"Milano",address:"Via Brera 18",country:"Italy",countryCode:"IT",lat:45.4722,lng:9.1876,timezone:"Europe/Rome",currency:"EUR",priceFrom:20,description:"Hair & barber studio contemporaneo con servizi uomo e donna.",membership:"pro"},
+    {id:"b2",name:"Luna Nails",category:["Nails","Beauty"],rating:4.8,reviews:118,distance:1.6,city:"Madrid",address:"Calle de Fuencarral 42",country:"Spain",countryCode:"ES",lat:40.4203,lng:-3.7058,timezone:"Europe/Madrid",currency:"EUR",priceFrom:25,description:"Nail studio specializzato in manicure, semipermanente e nail art.",membership:"start"},
+    {id:"b3",name:"Kai Wellness",category:["Wellness","Beauty"],rating:4.9,reviews:210,distance:2.4,city:"Paris",address:"Rue du Temple 8",country:"France",countryCode:"FR",lat:48.8569,lng:2.3508,timezone:"Europe/Paris",currency:"EUR",priceFrom:40,description:"Wellness studio con trattamenti viso, massaggi e rituali di cura.",membership:"business"},
+    {id:"b4",name:"Forma Studio",category:["Hair","Beauty"],rating:4.7,reviews:92,distance:3.1,city:"Berlin",address:"Rosenthaler Str. 54",country:"Germany",countryCode:"DE",lat:52.5208,lng:13.4095,timezone:"Europe/Berlin",currency:"EUR",priceFrom:22,description:"Hair & beauty studio inclusivo, moderno e orientato alla consulenza.",membership:"pro"},
+    {id:"b5",name:"North Barber",category:["Barber"],rating:4.8,reviews:176,distance:1.2,city:"London",address:"Shoreditch High St 19",country:"United Kingdom",countryCode:"GB",lat:51.5142,lng:-0.0931,timezone:"Europe/London",currency:"GBP",priceFrom:18,description:"Barber shop contemporaneo, tagli classici e moderni.",membership:"start"},
+    {id:"b6",name:"Aura Lab",category:["Beauty","Nails"],rating:4.9,reviews:145,distance:2.0,city:"Lisboa",address:"Rua do Alecrim 11",country:"Portugal",countryCode:"PT",lat:38.7139,lng:-9.1394,timezone:"Europe/Lisbon",currency:"EUR",priceFrom:28,description:"Beauty lab per viso, mani e trattamenti personalizzati.",membership:"pro"}
   ],
   services:[
     {id:"s1",businessId:"b1",name:"Taglio uomo",category:"Barber",duration:30,price:20,team:["t1","t2"]},
@@ -81,7 +140,7 @@ function svc(id){return state.services.find(x=>x.id===id)}
 function tm(id){return state.team.find(x=>x.id===id)}
 function initials(name){return name.split(/\s+/).map(x=>x[0]).slice(0,2).join("").toUpperCase()}
 
-let filters={q:"",category:null,city:"Milano"};
+let filters={q:"",category:null,city:"",locationQuery:"",nearMe:false};
 let booking={businessId:null,serviceId:null,teamId:null,date:null,time:null,step:1,appointmentId:null};
 let deferredPrompt=null;
 
@@ -92,6 +151,9 @@ if("serviceWorker" in navigator)navigator.serviceWorker.register("/service-worke
 
 modeBtn.onclick=()=>handleProButton();
 window.addEventListener("hashchange",()=>render());
+const globalLocaleMount=document.getElementById("globalLocaleMount");
+if(globalLocaleMount)globalLocaleMount.innerHTML=localeSelector();
+applyGlobalTranslations();
 
 
 function route(){
@@ -109,6 +171,7 @@ function renderLegacy(){
   document.getElementById("mobileNav").style.display=r.area==="pro"?"none":"";
   document.querySelectorAll(".mobile-nav a").forEach(a=>a.classList.toggle("active",a.dataset.route===r.view));
   if(r.area==="pro")renderPro(r.view);else renderClient(r.view,r.id);
+  applyGlobalTranslations();
   window.scrollTo({top:0,behavior:"instant"});
 }
 function renderClient(view,id){
@@ -122,12 +185,14 @@ function homeView(){
       <div class="hero-card">
         <div class="eyebrow">Beauty · Barber · Wellness</div>
         <h1>Find it. Book it. Look good.</h1>
-        <p class="hero-copy">Trova professionisti, confronta servizi e disponibilità, prenota in pochi secondi.</p>
-        <div class="search-box">
-          <input id="searchQ" value="${filters.q}" placeholder="Hair, barber, nails, beauty..." oninput="filters.q=this.value;refreshHome()">
-          <select id="searchCity" onchange="filters.city=this.value;refreshHome()"><option>Milano</option><option>Roma</option><option>Torino</option></select>
-          <button class="btn primary" onclick="refreshHome()">Cerca</button>
+        <p class="hero-copy">${tr("hero")}</p>
+        <div class="search-box international-search">
+          <input id="searchQ" value="${filters.q}" placeholder="${tr("what")}" oninput="filters.q=this.value;refreshHome()">
+          <input id="searchLocation" value="${filters.locationQuery||""}" placeholder="${tr("where")}" oninput="filters.locationQuery=this.value;filters.nearMe=false;refreshHome()">
+          <button class="btn secondary" id="nearMeBtn" onclick="useMyLocation()">⌖ ${tr("near")}</button>
+          <button class="btn primary" onclick="refreshHome()">${tr("search")}</button>
         </div>
+        <div class="international-tools"><span>${userGeo?`⌖ ${tr("locationFound")}`:tr("allLocations")}</span>${localeSelector()}</div>
       </div>
       <aside class="hero-card hero-side">
         <div class="metric"><span>Professionisti demo</span><strong>${state.team.length}</strong></div>
@@ -137,7 +202,7 @@ function homeView(){
     </section>
 
     <section class="section">
-      <div class="section-head"><div><div class="eyebrow">Esplora</div><h2>Cosa cerchi?</h2></div></div>
+      <div class="section-head"><div><div class="eyebrow">${tr("explore")}</div><h2>${tr("looking")}</h2></div></div>
       <div class="categories">
         ${categoryCard("Hair","✂")}
         ${categoryCard("Barber","◒")}
@@ -175,7 +240,7 @@ function businessCard(b){
     <div class="biz-body">
       <div class="biz-top"><div><h3>${b.name}</h3><div class="meta">${b.category.join(" · ")} · ${b.distance} km</div></div><div class="rating">★ ${b.rating}</div></div>
       <div class="tags">${b.category.map(x=>`<span class="chip">${x}</span>`).join("")}</div>
-      <div class="biz-footer"><div><div class="meta">da</div><div class="price">${money(b.priceFrom)}</div></div><button class="btn dark small" onclick="location.hash='#/business/${b.id}'">Vedi</button></div>
+      <div class="biz-footer"><div><div class="meta">da</div><div class="price">${money(b.priceFrom,b.currency||"EUR")}</div></div><button class="btn dark small" onclick="location.hash='#/business/${b.id}'">Vedi</button></div>
     </div>
   </article>`
 }

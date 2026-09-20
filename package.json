@@ -1,17 +1,8 @@
 {
   "name": "lookado",
-  "version": "18.1.0-verified",
+  "version": "19.0.0",
   "private": true,
   "scripts": {
-    "build": "node scripts/build-web.mjs",
-    "android:prepare": "npm run build && (test -d android || npx cap add android) && npx cap sync android",
-    "android:apk": "npm run android:prepare && cd android && ./gradlew assembleDebug"
-  },
-  "dependencies": {
-    "@capacitor/android": "^7.4.3",
-    "@capacitor/core": "^7.4.3"
-  },
-  "devDependencies": {
-    "@capacitor/cli": "^7.4.3"
+    "build": "node scripts/build-web.mjs"
   }
 }
