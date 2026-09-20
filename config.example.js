@@ -1,0 +1,1 @@
+window.LOOKADO_CONFIG={supabaseUrl:"",supabaseAnonKey:""};

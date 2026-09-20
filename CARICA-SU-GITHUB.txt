@@ -1,0 +1,7 @@
+1) Apri GitHub > andrearuizrok-ux/lookado > lookado_rebuild
+2) Add file > Upload files
+3) ESTRAI questo ZIP sul PC e trascina TUTTI i file estratti nella pagina Upload files.
+4) GitHub mostrerà i file esistenti come sostituiti.
+5) Premi Commit changes.
+6) Messaggio commit: LOOKADO v19 Pro Suite
+IMPORTANTE: non caricare lo ZIP dentro lookado_rebuild; carica i file estratti.
