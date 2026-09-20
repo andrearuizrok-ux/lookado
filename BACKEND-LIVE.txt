@@ -1,0 +1,6 @@
+LOOKADO backend is LIVE on Supabase.
+Project ref: jmbkpjhmsqdurftxpjvx
+Project URL: https://jmbkpjhmsqdurftxpjvx.supabase.co
+
+This frontend contains only the public/publishable key.
+Never add the Supabase service-role/secret key to Cloudflare static assets.

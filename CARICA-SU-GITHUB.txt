@@ -1,7 +1,12 @@
-1) Apri GitHub > andrearuizrok-ux/lookado > lookado_rebuild
-2) Add file > Upload files
-3) ESTRAI questo ZIP sul PC e trascina TUTTI i file estratti nella pagina Upload files.
-4) GitHub mostrerà i file esistenti come sostituiti.
-5) Premi Commit changes.
-6) Messaggio commit: LOOKADO v19 Pro Suite
-IMPORTANTE: non caricare lo ZIP dentro lookado_rebuild; carica i file estratti.
+LOOKADO FULL RESTORE
+Questa è la versione completa recuperata dalla build v18.1, non la v19 semplificata.
+
+GitHub > andrearuizrok-ux/lookado > lookado_rebuild > Add file > Upload files
+Trascina TUTTI i file e la cartella scripts di questo pacchetto e sostituisci quelli esistenti.
+Commit: Restore LOOKADO full app v20
+
+Cloudflare dopo il collegamento Git:
+Root directory: lookado_rebuild
+Build command: npm run build
+Output directory: dist
+Branch: main

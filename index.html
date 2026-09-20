@@ -1,1 +1,52 @@
-<!doctype html><html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1A1D1F"><meta name="description" content="LOOKADO — Find it. Book it. Look good."><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/styles.css?v=19"><title>LOOKADO</title></head><body><div id="app"><header class="topbar"><button class="brand" data-route="home"><span class="brand-mark">O</span><span>LOOKADO</span></button><div class="top-actions"><button class="icon-btn" id="installBtn" hidden>↓</button><button class="avatar-btn" data-route="profile">AR</button></div></header><main id="view" class="view"></main><nav class="bottom-nav"><button data-route="home"><span>⌂</span><small>Home</small></button><button data-route="discover"><span>⌕</span><small>Scopri</small></button><button data-route="bookings"><span>▣</span><small>Prenotazioni</small></button><button data-route="proBusiness"><span>✦</span><small>Pro</small></button></nav></div><div id="toast" class="toast"></div><script src="/config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script type="module" src="/app.js?v=19"></script></body></html>
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#1A1D1F" />
+  <meta name="description" content="LOOKADO — Find it. Book it. Look good." />
+  <title>LOOKADO</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="stylesheet" href="/styles.css?v=18.1" />
+</head>
+<body>
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#/home" aria-label="LOOKADO Home">
+      <span class="brand-logo">LOOKAD<span>O</span></span>
+    </a>
+
+    <nav class="desktop-nav">
+      <a href="#/home">Scopri</a>
+      <a href="#/bookings">Appuntamenti</a>
+      <a href="#/favorites">Preferiti</a>
+    </nav>
+
+    <div class="top-actions">
+      <button id="installBtn" class="btn ghost small hidden">Installa</button>
+      <button id="modeBtn" class="btn dark small">LOOKADO Pro</button>
+    </div>
+  </header>
+
+  <main id="app"></main>
+
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="#/home" data-route="home"><span>⌂</span><small>Home</small></a>
+    <a href="#/bookings" data-route="bookings"><span>◫</span><small>Booking</small></a>
+    <a href="#/favorites" data-route="favorites"><span>♡</span><small>Preferiti</small></a>
+    <a href="#/profile" data-route="profile"><span>◎</span><small>Profilo</small></a>
+  </nav>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+    }
+    if ("caches" in window) {
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+  <script src="/app.js?v=18.1"></script>
+</body>
+</html>
