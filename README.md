@@ -1,7 +1,3 @@
-# LOOKADO Full Restore v20
-
-Ripristino della build completa v18.1 con packaging GitHub/Cloudflare/Capacitor.
-
 # LOOKADO v3 — CRM + aziende
 
 Questa versione aggiunge all'interfaccia:

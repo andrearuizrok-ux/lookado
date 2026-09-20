@@ -1,8 +1,7 @@
 {
   "name": "lookado",
-  "version": "20.0.0",
+  "version": "18.1.0-verified",
   "private": true,
-  "type": "module",
   "scripts": {
     "build": "node scripts/build-web.mjs",
     "android:prepare": "npm run build && (test -d android || npx cap add android) && npx cap sync android",
@@ -10,8 +9,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
-    "@capacitor/core": "^7.4.3",
-    "@supabase/supabase-js": "^2.57.4"
+    "@capacitor/core": "^7.4.3"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.3"

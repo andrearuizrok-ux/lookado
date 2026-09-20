@@ -1,0 +1,18 @@
+LOOKADO VERIFIED v18.1
+
+IMPORTANTE:
+- app.js, styles.css e index.html sono COPIE IDENTICHE dello ZIP v18.1 caricato da Andrea.
+- Non sono stati ricostruiti, semplificati o ridisegnati.
+- Sono stati aggiunti soltanto package.json, capacitor.config.ts e scripts/build-web.mjs
+  per GitHub / Cloudflare / APK.
+
+CARICAMENTO:
+GitHub > andrearuizrok-ux/lookado > lookado_rebuild > Add file > Upload files
+Carica tutti i file estratti e la cartella scripts.
+Commit: Restore exact LOOKADO v18.1 verified
+
+CLOUDFLARE:
+Root directory: lookado_rebuild
+Build command: npm run build
+Output directory: dist
+Production branch: main
