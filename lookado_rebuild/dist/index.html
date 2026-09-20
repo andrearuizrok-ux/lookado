@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#151216" />
+  <meta name="description" content="LOOKADO — prenota bellezza e gestisci il tuo business." />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+  <title>LOOKADO</title>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <button class="brand" data-route="home" aria-label="Vai alla home">
+        <span class="brand-mark">L</span>
+        <span>LOOKADO</span>
+      </button>
+      <div class="top-actions">
+        <button class="icon-btn" id="installBtn" hidden title="Installa app">↓</button>
+        <button class="avatar-btn" data-route="profile" aria-label="Profilo">AR</button>
+      </div>
+    </header>
+
+    <main id="view" class="view" aria-live="polite"></main>
+
+    <nav class="bottom-nav" aria-label="Navigazione principale">
+      <button data-route="home"><span>⌂</span><small>Home</small></button>
+      <button data-route="discover"><span>⌕</span><small>Scopri</small></button>
+      <button data-route="bookings"><span>▣</span><small>Prenotazioni</small></button>
+      <button data-route="proBusiness"><span>✦</span><small>Pro</small></button>
+    </nav>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

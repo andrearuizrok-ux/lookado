@@ -1,0 +1,9 @@
+{
+  "name": "LOOKADO",
+  "short_name": "LOOKADO",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff8fb",
+  "theme_color": "#151216",
+  "description": "Beauty booking and business management with LOOKADO Pro"
+}
