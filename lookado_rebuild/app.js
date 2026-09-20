@@ -24,6 +24,38 @@ const I18N={
 let lookadoLocale=localStorage.getItem(LOOKADO_I18N_KEY)||((navigator.language||"en").split("-")[0]);
 if(!SUPPORTED_LOCALES.includes(lookadoLocale)) lookadoLocale="en";
 let userGeo=JSON.parse(localStorage.getItem(LOOKADO_LOCATION_KEY)||"null");
+let userPlace=userGeo?.place||null;
+const COUNTRY_LANGUAGE={
+ IT:"it",VA:"it",SM:"it",CH:"de",
+ ES:"es",MX:"es",AR:"es",VE:"es",CO:"es",CL:"es",PE:"es",EC:"es",UY:"es",PY:"es",BO:"es",CR:"es",PA:"es",DO:"es",GT:"es",HN:"es",NI:"es",SV:"es",CU:"es",
+ FR:"fr",BE:"fr",LU:"fr",MC:"fr",
+ DE:"de",AT:"de",LI:"de",
+ PT:"pt",BR:"pt",
+ GB:"en",US:"en",CA:"en",AU:"en",NZ:"en",IE:"en"
+};
+function setLocaleFromCountry(code){
+ const lang=COUNTRY_LANGUAGE[String(code||"").toUpperCase()];
+ if(lang&&SUPPORTED_LOCALES.includes(lang)){
+   lookadoLocale=lang; localStorage.setItem(LOOKADO_I18N_KEY,lang);
+ }
+}
+async function reverseGeocode(lat,lng){
+ try{
+   const u=`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lng)}&localityLanguage=en`;
+   const r=await fetch(u); if(!r.ok)throw new Error("reverse geocode");
+   const d=await r.json();
+   return {
+     city:d.city||d.locality||d.principalSubdivision||"",
+     region:d.principalSubdivision||"",
+     country:d.countryName||"",
+     countryCode:d.countryCode||""
+   };
+ }catch(e){return null}
+}
+function placeLabel(){
+ if(!userPlace)return "";
+ return [userPlace.city,userPlace.country].filter(Boolean).join(", ");
+}
 function tr(k){return I18N[lookadoLocale]?.[k]||I18N.en[k]||k}
 function localeCode(){return LOCALE_META[lookadoLocale]?.locale||navigator.language||"en-GB"}
 function setLookadoLanguage(lang){
@@ -43,16 +75,19 @@ function haversineKm(a,b){
  const x=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
  return 2*R*Math.asin(Math.sqrt(x));
 }
-function useMyLocation(){
- if(!navigator.geolocation){toast(tr("locationDenied"));return}
+function useMyLocation(auto=false){
+ if(!navigator.geolocation){if(!auto)toast(tr("locationDenied"));return}
  const btn=document.getElementById("nearMeBtn"); if(btn){btn.disabled=true;btn.textContent="…"}
- navigator.geolocation.getCurrentPosition(pos=>{
+ navigator.geolocation.getCurrentPosition(async pos=>{
    userGeo={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy,updatedAt:Date.now()};
+   userPlace=await reverseGeocode(userGeo.lat,userGeo.lng);
+   if(userPlace){userGeo.place=userPlace;setLocaleFromCountry(userPlace.countryCode)}
    localStorage.setItem(LOOKADO_LOCATION_KEY,JSON.stringify(userGeo));
    filters.locationQuery=""; filters.nearMe=true;
    state.businesses.forEach(b=>{if(Number.isFinite(b.lat)&&Number.isFinite(b.lng))b.distance=Number(haversineKm(userGeo,b).toFixed(1))});
-   toast(tr("locationFound"));refreshHome();
- },()=>{toast(tr("locationDenied"));if(btn){btn.disabled=false;btn.textContent="⌖ "+tr("near")}},
+   const mount=document.getElementById("globalLocaleMount");if(mount)mount.innerHTML=localeSelector();
+   toast(placeLabel()?`⌖ ${placeLabel()}`:tr("locationFound"));refreshHome();
+ },()=>{if(!auto)toast(tr("locationDenied"));if(btn){btn.disabled=false;btn.textContent="⌖ "+tr("near")}},
  {enableHighAccuracy:false,timeout:8000,maximumAge:300000});
 }
 function localeSelector(){
@@ -187,12 +222,12 @@ function homeView(){
         <h1>Find it. Book it. Look good.</h1>
         <p class="hero-copy">${tr("hero")}</p>
         <div class="search-box international-search">
-          <input id="searchQ" value="${filters.q}" placeholder="${tr("what")}" oninput="filters.q=this.value;refreshHome()">
-          <input id="searchLocation" value="${filters.locationQuery||""}" placeholder="${tr("where")}" oninput="filters.locationQuery=this.value;filters.nearMe=false;refreshHome()">
+          <input id="searchQ" value="${filters.q}" placeholder="${tr("what")}" oninput="filters.q=this.value" onkeydown="if(event.key==='Enter')refreshHome()">
+          <input id="searchLocation" value="${filters.locationQuery||""}" placeholder="${tr("where")}" oninput="filters.locationQuery=this.value;filters.nearMe=false" onkeydown="if(event.key==='Enter')refreshHome()">
           <button class="btn secondary" id="nearMeBtn" onclick="useMyLocation()">⌖ ${tr("near")}</button>
           <button class="btn primary" onclick="refreshHome()">${tr("search")}</button>
         </div>
-        <div class="international-tools"><span>${userGeo?`⌖ ${tr("locationFound")}`:tr("allLocations")}</span>${localeSelector()}</div>
+        <div class="international-tools"><span>${userGeo?`⌖ ${placeLabel()||tr("locationFound")}`:tr("allLocations")}</span>${localeSelector()}</div>
       </div>
       <aside class="hero-card hero-side">
         <div class="metric"><span>Professionisti demo</span><strong>${state.team.length}</strong></div>
@@ -223,12 +258,18 @@ function categoryCard(cat,ico,label){return `<button class="category ${filters.c
 function setCategory(cat){filters.category=cat;render()}
 function refreshHome(){render()}
 function getFilteredBusinesses(){
-  return state.businesses.filter(b=>{
+  let rows=state.businesses.filter(b=>{
     const q=filters.q.trim().toLowerCase();
+    const l=(filters.locationQuery||"").trim().toLowerCase();
     const matchesQ=!q||b.name.toLowerCase().includes(q)||b.category.some(c=>c.toLowerCase().includes(q))||state.services.filter(s=>s.businessId===b.id).some(s=>s.name.toLowerCase().includes(q));
     const matchesCat=!filters.category||b.category.includes(filters.category);
-    return matchesQ&&matchesCat;
-  }).sort((a,b)=>a.distance-b.distance)
+    const hay=`${b.city||""} ${b.country||""} ${b.countryCode||""} ${b.address||""}`.toLowerCase();
+    const matchesLocation=!l||hay.includes(l);
+    return matchesQ&&matchesCat&&matchesLocation;
+  });
+  if(filters.nearMe&&userGeo) rows.sort((a,b)=>(a.distance??99999)-(b.distance??99999));
+  else rows.sort((a,b)=>a.name.localeCompare(b.name,localeCode()));
+  return rows;
 }
 function businessCard(b){
   const fav=state.favorites.includes(b.id);
@@ -238,7 +279,7 @@ function businessCard(b){
       <div class="monogram">${initials(b.name)}</div>
     </div>
     <div class="biz-body">
-      <div class="biz-top"><div><h3>${b.name}</h3><div class="meta">${b.category.join(" · ")} · ${b.distance} km</div></div><div class="rating">★ ${b.rating}</div></div>
+      <div class="biz-top"><div><h3>${b.name}</h3><div class="meta">${b.category.join(" · ")} · ${b.city}, ${b.country}${filters.nearMe&&userGeo?` · ${b.distance} km`:""}</div></div><div class="rating">★ ${b.rating}</div></div>
       <div class="tags">${b.category.map(x=>`<span class="chip">${x}</span>`).join("")}</div>
       <div class="biz-footer"><div><div class="meta">da</div><div class="price">${money(b.priceFrom,b.currency||"EUR")}</div></div><button class="btn dark small" onclick="location.hash='#/business/${b.id}'">Vedi</button></div>
     </div>
@@ -1054,3 +1095,18 @@ async function respondProposal(id,accept){const {data,error}=await db.rpc("custo
 
 
 bootLookado();
+
+// v19.1: on first visit request location; on later visits reuse it.
+// Browser/OS permission is always respected.
+window.addEventListener("load",()=>{
+ if(userGeo?.place){
+   userPlace=userGeo.place;
+   setLocaleFromCountry(userPlace.countryCode);
+   state.businesses.forEach(b=>{if(Number.isFinite(b.lat)&&Number.isFinite(b.lng))b.distance=Number(haversineKm(userGeo,b).toFixed(1))});
+   filters.nearMe=true;
+   const mount=document.getElementById("globalLocaleMount");if(mount)mount.innerHTML=localeSelector();
+   render();
+ }else{
+   useMyLocation(true);
+ }
+});
