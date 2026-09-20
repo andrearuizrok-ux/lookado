@@ -41,7 +41,9 @@ jobs:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install --save-dev typescript
 
       - name: Build web app
         run: npm run build
